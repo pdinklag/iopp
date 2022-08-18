@@ -80,12 +80,12 @@ Here's a simple example:
 #include <iopp/file_output_stream.hpp>
 
 int main(int argc, char** argv) {
-	if(argc < 3) return -1; // usage: [INPUT] [OUTPUT]
+    if(argc < 3) return -1; // usage: [INPUT] [OUTPUT]
 
-	// read the last 123 characters from the input file and write them to the output file
-	char buf[123];
-	
-	{
+    // read the last 123 characters from the input file and write them to the output file
+    char buf[123];
+    
+    {
         iopp::FileInputStream fin(argv[1]);
         fin.seekg(123, std::ios::end);
         fin.read(buf, 123);
@@ -94,11 +94,11 @@ int main(int argc, char** argv) {
         } else {
             return 1; // error
         }
-	}
-	{
-		iopp::FileOutputStream fout(argv[2]);
-		fout.write(buf, 123);
-	}
+    }
+    {
+        iopp::FileOutputStream fout(argv[2]);
+        fout.write(buf, 123);
+    }
 }
 ```
 
@@ -118,9 +118,9 @@ Here's a simple example:
 #include <iopp/stream_output_iterator.hpp>
 
 int main(int argc, char** argv) {
-	if(argc < 3) return -1; // usage: [INPUT] [OUTPUT]
+    if(argc < 3) return -1; // usage: [INPUT] [OUTPUT]
 
-	// perform a byte-wise copy of the input file to the output file
+    // perform a byte-wise copy of the input file to the output file
     iopp::FileInputStream fin(argv[1]);
     iopp::FileOutputStream fout(argv[2]);
 
@@ -144,7 +144,7 @@ Here's a simple example:
 #include <iopp/bitwise_io.hpp>
 
 int main(int argc, char** argv) {
-	if(argc < 2) return -1; // usage: [OUTPUT]
+    if(argc < 2) return -1; // usage: [OUTPUT]
     
     // do some bitwise output to the output file
     {
@@ -187,7 +187,7 @@ Here's a simple example:
 #include <iopp/stream_output_iterator.hpp>
 
 int main(int argc, char** argv) {
-	if(argc < 3) return -1; // usage: [OUTPUT]
+    if(argc < 3) return -1; // usage: [OUTPUT]
     
     if(iopp::MemoryMappedFile::available()) { // test if we can do this on this OS
         // memory-map the input file
