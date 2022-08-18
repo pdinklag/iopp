@@ -1,4 +1,4 @@
-# io++ - I/O Utilities for C++
+# io++ &ndash; I/O Utilities for C++
 
 This header-only C++20 library provides an API for various frequently used I/O operations:
 
