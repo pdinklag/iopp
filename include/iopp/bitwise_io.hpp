@@ -29,6 +29,10 @@
 #define _IOPP_BITWISE_IO_HPP
 
 #include "concepts.hpp"
+
+#include "stream_input_iterator.hpp"
+#include "stream_output_iterator.hpp"
+
 #include "util/bit_packer.hpp"
 #include "util/bit_unpacker.hpp"
 #include "util/char_packer.hpp"
