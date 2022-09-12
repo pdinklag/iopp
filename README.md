@@ -179,7 +179,7 @@ In the above example, there was no notion of an "end of file" (EOF). In many cas
 When destroyed, the object returned by `bitwise_output_to` (an `iopp::BitPacker`) appends a finalizer to the bitwise output. It encodes the number of actually used bits in the final pack. To make this information available to a decoder, use the overload of `bitwise_input_from` that accepts a beginning and end iterator like so:
 
 ```cpp
-iopp::FileInputStream fin(filename);
+iopp::FileInputStream fin(argv[1]);
 auto bits = iopp::bitwise_input_from(fin.begin(), fin.end());
 size_t num_bits_read = 0;
 while(bits) {
@@ -188,9 +188,11 @@ while(bits) {
 }
 ```
 
-
-
 Note that finalizers, in the worst case, may add an additional pack to the output such that up to 58 bits are wasted (on a 64-bit architecture). If not needed, finalizers can be disabled by passing `false` as the second parameter to `bitwise_output_to`.
+
+#### Concepts
+
+The library comes with two concepts: `iopp::BitSink` and `iopp::BitSource`. These reflect the API of the objects returned by `bitwise_input_from` and `bitwise_output_to`, respectively, and allow for stating proper C++20 requirements for template parameters.
 
 ### Memory-Mapped Files
 

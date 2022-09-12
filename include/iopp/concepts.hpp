@@ -92,6 +92,45 @@ concept STLOutputStreamLike =
         { subject.write(inp, len) }; // write -- we don't care about the return type, which is typically a reference to some abstract base type
     };
 
+/**
+ * \brief Concept for types that accept bitwise input
+ * 
+ * In order to satisfy this concept, the type must provide
+ * * a function `write` accepting a single bit as a boolean value,
+ * * an overload of `write` accepting an unsigned integer containing the bits to be written, as well as the number of bits to write, and
+ * * a function `flush` that flushes any current intermediate state to the sink
+ * 
+ * \tparam T the type
+ */
+template<typename T>
+concept BitSink =
+    requires(T subject) {
+        { subject.flush() };
+    } &&
+    requires(T subject, bool bit) {
+        { subject.write(bit) };
+    } &&
+    requires(T subject, uintmax_t bits, size_t num) {
+        { subject.write(bits, num) };
+    };
+
+/**
+ * \brief Concept for types from which bits can be extracted
+ * 
+ * In order to satisfy this concept, the type must provide two functions:
+ * * `read` to extract a single bit, and
+ * * `read` to extract a given number of bits as an unsigned integer
+ * 
+ * \tparam T the type
+ */
+template<typename T>
+concept BitSource =
+    requires(T subject) {
+        { subject.read() } -> std::same_as<bool>;
+    } && requires(T subject, size_t num) {
+        { subject.read(num) } -> std::unsigned_integral;
+    };
+
 }
 
 #endif
