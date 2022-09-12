@@ -73,6 +73,16 @@ int example_bitwise_io(int argc, char** argv) {
     return ok ? 0 : 1;
 }
 
+void example_bitwise_input_iterators(int argc, char** argv) {
+    iopp::FileInputStream fin(argv[1]);
+    auto bits = iopp::bitwise_input_from(fin.begin(), fin.end());
+    size_t num_bits_read = 0;
+    while(bits) {
+        bits.read();
+        ++num_bits_read;
+    }
+}
+
 #include <algorithm>
 #include <iopp/file_output_stream.hpp>
 #include <iopp/stream_output_iterator.hpp>
@@ -100,6 +110,7 @@ int main(int argc, char** argv) {
     example_file_io(argc, argv);
     example_stream_iterators(argc, argv);
     example_bitwise_io(argc, argv);
+    example_bitwise_input_iterators(argc, argv);
     example_mmap(argc, argv);
     return 0;
 }

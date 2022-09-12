@@ -28,6 +28,8 @@
 #ifndef _IOPP_UTIL_BIT_UNPACKER_HPP
 #define _IOPP_UTIL_BIT_UNPACKER_HPP
 
+#include <bit>
+#include <cstddef>
 #include <concepts>
 #include <iterator>
 
@@ -49,13 +51,51 @@ template<std::input_iterator Input>
 requires std::convertible_to<std::iter_value_t<Input>, PackWord>
 class BitUnpacker {
 private:
+    static constexpr size_t decode_finalizer(PackWord const x) {
+        size_t const f = ((x >> FINALIZER_LSH) + 1) % PACK_WORD_BITS;
+        return f ? f : PACK_WORD_BITS; // if finalizer is zero, it means we completely filled up the previous word
+    }
+
+    static constexpr size_t FINALIZER_BITS = std::bit_width(PACK_WORD_BITS - 1);
+    static constexpr size_t PAYLOAD_BITS = PACK_WORD_BITS - FINALIZER_BITS;
+    static constexpr size_t FINALIZER_LSH = PAYLOAD_BITS - 1;
+
     PackWord pack_;
     size_t i_;
 
     Input in_;
+    Input end_;
+
+    bool final_;
+    size_t final_avail_;
 
     void advance() {
+        if(final_) {
+            // we are already done
+            return;
+        }
+
         pack_ = *in_++;
+        if(in_ == end_) {
+            // we reached the final block
+            final_avail_ = decode_finalizer(pack_);
+            final_ = true;
+        } else {
+            // there is at least one next block
+            auto next = in_;
+            ++next;
+            if(next == end_) {
+                // the next block is the last block
+                auto const avail = decode_finalizer(*in_);
+                if(avail >= PAYLOAD_BITS) {
+                    // the number of available bits in the last block indicates that one extra block was appended
+                    // therefore, we already reached the last block
+                    final_avail_ = avail;
+                    final_ = true;
+                }
+            }
+        }
+
         i_ = 0;
     }
 
@@ -65,7 +105,23 @@ public:
      * 
      * \param in the input iterator for packed words
      */
-    BitUnpacker(Input in) : in_(in), i_(PACK_WORD_BITS) {
+    BitUnpacker(Input in) : BitUnpacker(in, {}) {
+    }
+
+    /**
+     * \brief Constructs a bit unpacker
+     * 
+     * \param in the input iterator for packed words
+     * \param end the end iterator; required to detect the end of the bit stream
+     */
+    BitUnpacker(Input in, Input end) : i_(PACK_WORD_BITS), in_(in), end_(end) {
+        if(in_ == end_) {
+            // the input is empty
+            final_ = true;
+            final_avail_ = 0;
+        } else {
+            final_ = false;
+        }
     }
 
     /**
@@ -122,6 +178,30 @@ public:
      * \return size_t the position of the next bit to be read in the current pack word
      */
     size_t pack_pos() const { return i_ % PACK_WORD_BITS; }
+
+    /**
+     * \brief Tests whether more bits can be read from the stream
+     * 
+     * \return true if there is at least one more bit on the stream
+     * \return false if the end of the stream was reached
+     */
+    bool good() const { return !final_ || i_ < final_avail_; }
+
+    /**
+     * \brief Shorthand alternative to \ref good .
+     * 
+     * \return true if there is at least one more bit on the stream
+     * \return false if the end of the stream was reached
+     */
+    operator bool() const { return good(); }
+
+    /**
+     * \brief Tests whether the end of the bit stream has been reached
+     * 
+     * \return true if all bits have been read from the stream
+     * \return false if there are still bits on the stream
+     */
+    bool eof() const { return final_ && i_ >= final_avail_; }
 };
 
 }

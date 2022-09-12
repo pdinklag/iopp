@@ -61,6 +61,27 @@ auto bitwise_input_from(InputStream& in) {
 }
 
 /**
+ * \brief Constructs a \ref iopp::BitSource "BitSource" from the iterator
+ * 
+ * This is shorthand for the following snippet:
+ * \code{.cpp}
+ * BitUnpacker(CharPacker(begin, end), {})
+ * \endcode
+ * 
+ * If a finalizer is available at the end of the input, it will be used to deliver proper end-of-file information.
+ * 
+ * \tparam InputStream the input stream type
+ * \param begin the beginning of the input
+ * \param end the end of the input
+ * \return a bit source reading from the input
+ */
+template<std::input_iterator Input>
+requires std::convertible_to<std::iter_value_t<Input>, char>
+auto bitwise_input_from(Input begin, Input end) {
+    return BitUnpacker(CharPacker(begin, end), {});
+}
+
+/**
  * \brief Constructs a \ref iopp::BitSink "BitSink" to the given output stream
  * 
  * This is shorthand for the following snippet:
@@ -70,11 +91,12 @@ auto bitwise_input_from(InputStream& in) {
  * 
  * \tparam OutputStream the output stream type
  * \param out the output stream
+ * \param finalize whether or not to append a finalizer to the stream after destroying the bit sink
  * \return a bit sink writing to the output stream
  */
 template<STLOutputStreamLike OutputStream>
-auto bitwise_output_to(OutputStream& out) {
-    return BitPacker(CharUnpacker(StreamOutputIterator(out)));
+auto bitwise_output_to(OutputStream& out, bool const finalize = true) {
+    return BitPacker(CharUnpacker(StreamOutputIterator(out)), finalize);
 }
 
 }

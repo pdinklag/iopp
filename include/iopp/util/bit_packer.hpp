@@ -28,6 +28,8 @@
 #ifndef _IOPP_UTIL_BIT_PACKER_HPP
 #define _IOPP_UTIL_BIT_PACKER_HPP
 
+#include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <limits>
@@ -50,10 +52,20 @@ namespace iopp {
 template<std::output_iterator<PackWord> Output>
 class BitPacker {
 private:
+    static constexpr size_t FINALIZER_BITS = std::bit_width(PACK_WORD_BITS - 1);
+    static constexpr size_t PAYLOAD_BITS = PACK_WORD_BITS - FINALIZER_BITS;
+    static constexpr size_t FINALIZER_LSH = PAYLOAD_BITS - 1;
+
+    static constexpr PackWord encode_finalizer(size_t const finalizer) {
+        return (PackWord(finalizer) - 1) << FINALIZER_LSH;
+    }
+
     PackWord pack_;
     size_t i_;
 
     Output out_;
+    bool finalize_;
+    bool was_ever_flushed_;
 
     void reset() {
         pack_ = 0U;
@@ -65,16 +77,28 @@ public:
      * \brief Constructs a bit packer
      * 
      * \param out the output iterator
+     * \param finalize if true, when destroying the bit packer, it will emit a final piece of information for a future \ref BitUnpacker to detect the end of the bit stream
      */
-    BitPacker(Output out) : out_(out) {
+    BitPacker(Output out, bool const finalize = true) : out_(out), finalize_(finalize), was_ever_flushed_(false) {
         reset();
     }
 
     /**
-     * \brief Calls \ref flush
+     * \brief Potentially writes finalization information and finally calls \ref flush
      * 
      */
     ~BitPacker() {
+        bool const non_empty = (was_ever_flushed_ || i_ > 0); // nb: we don't write a finalizer if the output stream is empty
+        if(finalize_ && non_empty) {
+            PackWord const finalizer = encode_finalizer(i_);
+            if(i_ > PAYLOAD_BITS) {
+                // finalization info no longer fits into this pack word, flush and write it to the next
+                flush();
+            }
+
+            pack_ |= finalizer;
+            i_ = PACK_WORD_BITS; // nb: make sure the final flush will do something even if this is a new (final) word
+        }
         flush();
     }
 
@@ -128,6 +152,8 @@ public:
      */
     void flush() {
         if(i_) {
+            was_ever_flushed_ = true;
+
             *out_++ = pack_;
             reset();
         }

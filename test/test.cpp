@@ -1,6 +1,7 @@
 #include "test.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <fstream>
 #include <iterator>
 #include <random>
@@ -263,6 +264,101 @@ TEST_SUITE("io") {
             CHECK(src2.pack_pos() == 17);
             src.read(PACK_WORD_BITS);
             CHECK(src2.pack_pos() == 17); // full circle
+        }
+    }
+
+    constexpr size_t decode_finalizer(PackWord const x) {
+        constexpr size_t FINALIZER_BITS = std::bit_width(PACK_WORD_BITS - 1);
+        constexpr size_t FINALIZER_LSH = (PACK_WORD_BITS - FINALIZER_BITS) - 1;
+        size_t const f = ((x >> FINALIZER_LSH) + 1) % PACK_WORD_BITS;
+        return f ? f : PACK_WORD_BITS; // if finalizer is zero, it means we completely filled up the previous word
+    }
+
+    template<typename Src>
+    void check_ones_onebyone(Src& src, size_t const num) {
+        for(size_t i = 0; i < num; i++) {
+            CHECK(!src.eof());
+            CHECK(src.read() == 1);
+        }
+        CHECK(src.eof());
+    }
+
+    template<typename Src>
+    void check_ones_whilegood(Src& src, size_t const num) {
+        size_t sum = 0;
+        while(src) sum += src.read();
+        CHECK(sum == num);
+    }
+
+    TEST_CASE("BitwiseIO") {
+        std::vector<PackWord> target;
+        auto const finalizer_bits = std::bit_width(PACK_WORD_BITS - 1);
+        auto const payload_bits = PACK_WORD_BITS - finalizer_bits;
+        auto const payload_max = (1ULL << payload_bits) - 1;
+
+        SUBCASE("empty") {
+            {
+                auto sink = BitPacker(std::back_inserter(target));
+            }
+            CHECK(target.size() == 0);
+
+            auto src = BitUnpacker(target.begin(), target.end());
+            CHECK(src.eof());
+        }
+
+        SUBCASE("max_singleword_payload") {
+            {
+                auto sink = BitPacker(std::back_inserter(target));
+                sink.write(payload_max, payload_bits);
+            }
+            REQUIRE(target.size() == 1);
+            REQUIRE(decode_finalizer(target[0]) == payload_bits);
+
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_onebyone(src, payload_bits);
+            }
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_whilegood(src, payload_bits);
+            }
+        }
+
+        SUBCASE("min_multiword_payload") {
+            {
+                auto sink = BitPacker(std::back_inserter(target));
+                sink.write((payload_max << 1) | 1ULL, payload_bits + 1);
+            }
+            REQUIRE(target.size() == 2);
+            REQUIRE(decode_finalizer(target[1]) == payload_bits + 1);
+
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_onebyone(src, payload_bits + 1);
+            }
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_whilegood(src, payload_bits + 1);
+            }
+        }
+
+        SUBCASE("max_possible_payload") {
+            {
+                auto sink = BitPacker(std::back_inserter(target));
+                sink.write(PACK_WORD_MAX, PACK_WORD_BITS);
+            }
+            REQUIRE(target.size() == 2); // extra word required
+            REQUIRE(target[0] == PACK_WORD_MAX);
+            REQUIRE(decode_finalizer(target[1]) == PACK_WORD_BITS);
+
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_onebyone(src, PACK_WORD_BITS);
+            }
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_whilegood(src, PACK_WORD_BITS);
+            }
         }
     }
 

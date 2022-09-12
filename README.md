@@ -172,7 +172,25 @@ int main(int argc, char** argv) {
 }
 ```
 
-Note that there is no notion of an "end of file" (EOF) for bitwise input. It is your responsibility to not try and read more bits than available in the input.
+#### Finalizers
+
+In the above example, there was no notion of an "end of file" (EOF). In many cases, however, it is required to find out whether all bits have been read from the input. For this, the library supports *finalizers*.
+
+When destroyed, the object returned by `bitwise_output_to` (an `iopp::BitPacker`) appends a finalizer to the bitwise output. It encodes the number of actually used bits in the final pack. To make this information available to a decoder, use the overload of `bitwise_input_from` that accepts a beginning and end iterator like so:
+
+```cpp
+iopp::FileInputStream fin(filename);
+auto bits = iopp::bitwise_input_from(fin.begin(), fin.end());
+size_t num_bits_read = 0;
+while(bits) {
+    bits.read();
+    ++num_bits_read;
+}
+```
+
+
+
+Note that finalizers, in the worst case, may add an additional pack to the output such that up to 58 bits are wasted (on a 64-bit architecture). If not needed, finalizers can be disabled by passing `false` as the second parameter to `bitwise_output_to`.
 
 ### Memory-Mapped Files
 
