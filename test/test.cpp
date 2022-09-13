@@ -360,6 +360,35 @@ TEST_SUITE("io") {
                 check_ones_whilegood(src, PACK_WORD_BITS);
             }
         }
+
+        SUBCASE("encode_decode") {
+            std::vector<size_t> bits = { 64, 64, 64, 8, 64, 32, 24, 16, 15, 64, 9, 37 };
+            size_t const cyc = bits.size();
+            std::vector<uint64_t> mask(cyc);
+            for(size_t i = 0; i < cyc; i++) mask[i] = UINT64_MAX >> (64 - bits[i]);
+            
+            // encode
+            {
+                auto sink = BitPacker(std::back_inserter(target));
+                for(uint64_t i = 0; i < iota_size; i++) {
+                    auto const j = i % cyc;
+                    uint64_t const x = i & mask[j];
+                    sink.write(x, bits[j]);
+                }
+            }
+
+            // decode
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                for(uint64_t i = 0; i < iota_size; i++) {
+                    auto const j = i % cyc;
+                    uint64_t const x = i & mask[j];
+                    uint64_t const y = src.read(bits[j]);
+                    CHECK(x == y);
+                }
+                CHECK(src.eof());
+            }
+        }
     }
 
     TEST_CASE("load_file") {
