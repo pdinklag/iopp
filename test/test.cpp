@@ -19,6 +19,8 @@
 #include <iopp/util/char_packer.hpp>
 #include <iopp/util/char_unpacker.hpp>
 
+#include <iopp/bitwise_io.hpp>
+
 namespace iopp::test {
 
 TEST_SUITE("io") {
@@ -127,7 +129,7 @@ TEST_SUITE("io") {
 
     TEST_CASE("FileOutputStream") {
         // generate a random string
-        auto tmpfile = std::filesystem::temp_directory_path() / "tdc-test-output";
+        auto tmpfile = std::filesystem::temp_directory_path() / "iopp-test-output";
         std::filesystem::remove(tmpfile);
 
         std::string str_iota = load(file_iota);
@@ -387,6 +389,27 @@ TEST_SUITE("io") {
                     CHECK(x == y);
                 }
                 CHECK(src.eof());
+            }
+        }
+
+        SUBCASE("bitwise_file_io") {
+            auto tmpfile = std::filesystem::temp_directory_path() / "iopp-bitwise-test-output";
+            {
+                FileOutputStream fos(tmpfile);
+                auto out = bitwise_output_to(fos);
+                for(size_t i = 0; i < iota_size; i++) {
+                    out.write(i & 0xFF, 8);
+                }
+            }
+            {
+                FileInputStream fis(tmpfile);
+                auto in = bitwise_input_from(fis.begin(), fis.end());
+                for(size_t i = 0; i < iota_size; i++) {
+                    auto const x = i & 0xFF;
+                    auto const y = in.read(8);
+                    CHECK(y == x);
+                }
+                CHECK(in.eof());
             }
         }
     }

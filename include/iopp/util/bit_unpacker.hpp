@@ -61,6 +61,7 @@ private:
     static constexpr size_t FINALIZER_LSH = PAYLOAD_BITS - 1;
 
     PackWord pack_;
+    PackWord next_;
     size_t i_;
 
     Input in_;
@@ -70,23 +71,24 @@ private:
     size_t final_avail_;
 
     void advance() {
+        pack_ = next_;
+        i_ = 0;
+
         if(final_) {
             // we are already done
             return;
         }
 
-        pack_ = *in_++;
         if(in_ == end_) {
             // we reached the final block
             final_avail_ = decode_finalizer(pack_);
             final_ = true;
         } else {
             // there is at least one next block
-            auto next = in_;
-            ++next;
-            if(next == end_) {
+            next_ = *in_++;
+            if(in_ == end_) {
                 // the next block is the last block
-                auto const avail = decode_finalizer(*in_);
+                auto const avail = decode_finalizer(next_);
                 if(avail >= PAYLOAD_BITS) {
                     // the number of available bits in the last block indicates that one extra block was appended
                     // therefore, we already reached the last block
@@ -95,8 +97,6 @@ private:
                 }
             }
         }
-
-        i_ = 0;
     }
 
 public:
@@ -120,6 +120,8 @@ public:
             final_ = true;
             final_avail_ = 0;
         } else {
+            // there is at least one block, get data
+            next_ = *in_++;
             final_ = false;
         }
     }
