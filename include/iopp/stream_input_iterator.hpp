@@ -79,6 +79,9 @@ private:
         }
     }
 
+    StreamInputIterator(InputStream& stream, bool eof) : stream_(&stream), eof_(eof), current_() {
+    }
+
 public:
     using iterator_category = std::input_iterator_tag;
     using difference_type   = std::ptrdiff_t;
@@ -87,9 +90,16 @@ public:
     using reference         = Char&;
 
     /**
-     * \brief Constructs an iterator in EOF state
+     * \brief Returns an iterator marking the end of the given stream
+     * 
+     * \param stream the stream the end of which is marked
      */
-    StreamInputIterator() : stream_(nullptr), eof_(true), current_() {
+    static StreamInputIterator end(InputStream& stream) { return StreamInputIterator(stream, true); }
+
+    /**
+     * \brief Constructs an invalid iterator
+     */
+    StreamInputIterator() : stream_(nullptr), eof_(false) {
     }
 
     /**
@@ -114,8 +124,7 @@ public:
      * \return false otherwise
      */
     bool operator==(StreamInputIterator const& other) const {
-        // iterators that reached EOF are considered equal
-        return (eof_ && other.eof_) || stream_ == other.stream_;
+        return stream_ == other.stream_ && eof_ == other.eof_;
     }
 
     /**

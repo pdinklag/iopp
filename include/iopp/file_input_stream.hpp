@@ -355,7 +355,7 @@ public:
      * 
      * \return an input iterator marking the end of the file
      */
-    inline auto end() const { return StreamInputIterator<FileInputStream>{}; }
+    inline auto end() { return StreamInputIterator<FileInputStream>::end(*this); }
 };
 
 }

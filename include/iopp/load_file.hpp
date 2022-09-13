@@ -47,7 +47,7 @@ inline std::string load_file_str(std::filesystem::path const& path) {
     s.reserve(std::filesystem::file_size(path));
     {
         FileInputStream fin(path);
-        std::copy(StreamInputIterator(fin), {}, std::back_inserter(s));
+        std::copy(fin.begin(), fin.end(), std::back_inserter(s));
     }
     s.shrink_to_fit();
     return s;

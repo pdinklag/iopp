@@ -149,8 +149,8 @@ TEST_SUITE("io") {
         std::string str_iota = load(file_iota);
         auto iota_it = str_iota.begin();
         FileInputStream fin(file_iota);
-        StreamInputIterator<FileInputStream> in(fin);
-        StreamInputIterator<FileInputStream> end;
+        auto in = fin.begin();
+        auto end = fin.end();
 
         SUBCASE("Read + prefix increment") {
             while(in != end) {
@@ -385,6 +385,8 @@ TEST_SUITE("io") {
                 for(uint64_t i = 0; i < iota_size; i++) {
                     auto const j = i % cyc;
                     uint64_t const x = i & mask[j];
+
+                    CHECK(!src.eof());
                     uint64_t const y = src.read(bits[j]);
                     CHECK(x == y);
                 }
@@ -393,23 +395,33 @@ TEST_SUITE("io") {
         }
 
         SUBCASE("bitwise_file_io") {
+            std::vector<size_t> bits = { 64, 64, 64, 8, 64, 32, 24, 16, 15, 64, 9, 37 };
+            size_t const cyc = bits.size();
+            std::vector<uint64_t> mask(cyc);
+            for(size_t i = 0; i < cyc; i++) mask[i] = UINT64_MAX >> (64 - bits[i]);
+
             auto tmpfile = std::filesystem::temp_directory_path() / "iopp-bitwise-test-output";
             {
                 FileOutputStream fos(tmpfile);
-                auto out = bitwise_output_to(fos);
-                for(size_t i = 0; i < iota_size; i++) {
-                    out.write(i & 0xFF, 8);
+                auto sink = bitwise_output_to(fos);
+                for(uint64_t i = 0; i < iota_size; i++) {
+                    auto const j = i % cyc;
+                    uint64_t const x = i & mask[j];
+                    sink.write(x, bits[j]);
                 }
             }
             {
                 FileInputStream fis(tmpfile);
-                auto in = bitwise_input_from(fis.begin(), fis.end());
-                for(size_t i = 0; i < iota_size; i++) {
-                    auto const x = i & 0xFF;
-                    auto const y = in.read(8);
-                    CHECK(y == x);
+                auto src = bitwise_input_from(fis.begin(), fis.end());
+                for(uint64_t i = 0; i < iota_size; i++) {
+                    auto const j = i % cyc;
+                    uint64_t const x = i & mask[j];
+
+                    CHECK(!src.eof());
+                    uint64_t const y = src.read(bits[j]);
+                    CHECK(x == y);
                 }
-                CHECK(in.eof());
+                CHECK(src.eof());
             }
         }
     }
