@@ -82,11 +82,29 @@ auto bitwise_input_from(Input begin, Input end) {
 }
 
 /**
+ * \brief Constructs a \ref iopp::BitSink "BitSink" to the given output iterator
+ * 
+ * This is shorthand for the following snippet:
+ * \code{.cpp}
+ * BitPacker(CharUnpacker(out))
+ * \endcode
+ * 
+ * \tparam Out the output iterator type
+ * \param out the output iterator
+ * \param finalize whether or not to append a finalizer to the stream after destroying the bit sink
+ * \return a bit sink writing to the output iterator
+ */
+template<std::output_iterator<char> Out>
+auto bitwise_output_to(Out out, bool const finalize = true) {
+    return BitPacker(CharUnpacker(out), finalize);
+}
+
+/**
  * \brief Constructs a \ref iopp::BitSink "BitSink" to the given output stream
  * 
  * This is shorthand for the following snippet:
  * \code{.cpp}
- * BitPacker(CharUnpacker(StreamOutputIterator(in), {}))
+ * BitPacker(CharUnpacker(StreamOutputIterator(out)))
  * \endcode
  * 
  * \tparam OutputStream the output stream type
