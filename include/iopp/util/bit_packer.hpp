@@ -92,7 +92,7 @@ public:
         bool const non_empty = (was_ever_flushed_ || i_ > 0); // nb: we don't write a finalizer if the output stream is empty
         if(finalize_ && non_empty) {
             PackWord const finalizer = encode_finalizer(i_);
-            if(i_ > PAYLOAD_BITS) {
+            if(i_ >= PAYLOAD_BITS) {
                 // finalization info no longer fits into this pack word, flush and write it to the next
                 flush();
             }
