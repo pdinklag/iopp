@@ -29,6 +29,7 @@
 #define _IOPP_UTIL_BIT_PACKER_HPP
 
 #include <bit>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -125,6 +126,8 @@ public:
      * \param num the number of low bits from `bits` to be written
      */
     void write(uintmax_t bits, size_t num) {
+        assert(num > 0);
+
         // write num low bits (in MSBF order)
         while(i_ + num > PACK_WORD_BITS) {
             // not all bits fit into current pack, write as many as possible and advance

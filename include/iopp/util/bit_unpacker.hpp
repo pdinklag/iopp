@@ -29,6 +29,7 @@
 #define _IOPP_UTIL_BIT_UNPACKER_HPP
 
 #include <bit>
+#include <cassert>
 #include <cstddef>
 #include <concepts>
 #include <iterator>
@@ -146,6 +147,8 @@ public:
      * \return the read bits
      */
     PackWord read(size_t num) {
+        assert(num > 0);
+
         PackWord bits = 0;
         size_t j = 0;
 
