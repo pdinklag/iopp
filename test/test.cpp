@@ -205,6 +205,7 @@ TEST_SUITE("io") {
         SUBCASE("single clear bit") {
             sink.write(0);
             sink.flush();
+            CHECK(sink.num_bits_written() == 1);
             CHECK(target.size() == 1);
             CHECK(target[0] == 0);
         }
@@ -212,12 +213,14 @@ TEST_SUITE("io") {
         SUBCASE("single set bit") {
             sink.write(1);
             sink.flush();
+            CHECK(sink.num_bits_written() == 1);
             CHECK(target.size() == 1);
             CHECK(target[0] == 1);
         }
         
         SUBCASE("max bits packed") {
             sink.write(PACK_WORD_MAX, PACK_WORD_BITS);
+            CHECK(sink.num_bits_written() == PACK_WORD_BITS);
             CHECK(target.size() == 1);
             CHECK(target[0] == PACK_WORD_MAX);
         }
@@ -226,6 +229,7 @@ TEST_SUITE("io") {
             sink.write(PACK_WORD_MAX, PACK_WORD_BITS);
             sink.write(1);
             sink.flush();
+            CHECK(sink.num_bits_written() == PACK_WORD_BITS + 1);
             CHECK(target.size() == 2);
             CHECK(target[0] == PACK_WORD_MAX);
             CHECK(target[1] == 1);
@@ -239,6 +243,7 @@ TEST_SUITE("io") {
             CHECK(sink.pack_pos() == 17);
             sink.write(PACK_WORD_MAX, PACK_WORD_BITS);
             CHECK(sink.pack_pos() == 17); // full circle
+            CHECK(sink.num_bits_written() == PACK_WORD_BITS + 17);
         }
     }
 
@@ -301,6 +306,7 @@ TEST_SUITE("io") {
         SUBCASE("empty") {
             {
                 auto sink = BitPacker(std::back_inserter(target));
+                CHECK(sink.num_bits_written() == 0);
             }
             CHECK(target.size() == 0);
 
@@ -311,10 +317,30 @@ TEST_SUITE("io") {
         SUBCASE("max_singleword_payload") {
             {
                 auto sink = BitPacker(std::back_inserter(target));
-                sink.write(payload_max, payload_bits);
+                sink.write(payload_max, payload_bits - 1);
+                CHECK(sink.num_bits_written() == payload_bits - 1);
             }
             REQUIRE(target.size() == 1);
-            REQUIRE(decode_finalizer(target[0]) == payload_bits);
+            REQUIRE(decode_finalizer(target[0]) == payload_bits - 1);
+
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_onebyone(src, payload_bits - 1);
+            }
+            {
+                auto src = BitUnpacker(target.begin(), target.end());
+                check_ones_whilegood(src, payload_bits - 1);
+            }
+        }
+
+        SUBCASE("min_multiword_payload") {
+            {
+                auto sink = BitPacker(std::back_inserter(target));
+                sink.write((payload_max << 1) | 1ULL, payload_bits);
+                CHECK(sink.num_bits_written() == payload_bits);
+            }
+            REQUIRE(target.size() == 2);
+            REQUIRE(decode_finalizer(target[1]) == payload_bits);
 
             {
                 auto src = BitUnpacker(target.begin(), target.end());
@@ -326,28 +352,11 @@ TEST_SUITE("io") {
             }
         }
 
-        SUBCASE("min_multiword_payload") {
-            {
-                auto sink = BitPacker(std::back_inserter(target));
-                sink.write((payload_max << 1) | 1ULL, payload_bits + 1);
-            }
-            REQUIRE(target.size() == 2);
-            REQUIRE(decode_finalizer(target[1]) == payload_bits + 1);
-
-            {
-                auto src = BitUnpacker(target.begin(), target.end());
-                check_ones_onebyone(src, payload_bits + 1);
-            }
-            {
-                auto src = BitUnpacker(target.begin(), target.end());
-                check_ones_whilegood(src, payload_bits + 1);
-            }
-        }
-
         SUBCASE("max_possible_payload") {
             {
                 auto sink = BitPacker(std::back_inserter(target));
                 sink.write(PACK_WORD_MAX, PACK_WORD_BITS);
+                CHECK(sink.num_bits_written() == PACK_WORD_BITS);
             }
             REQUIRE(target.size() == 2); // extra word required
             REQUIRE(target[0] == PACK_WORD_MAX);
@@ -371,12 +380,15 @@ TEST_SUITE("io") {
             
             // encode
             {
+                size_t exp_total = 0;
                 auto sink = BitPacker(std::back_inserter(target));
                 for(uint64_t i = 0; i < iota_size; i++) {
                     auto const j = i % cyc;
                     uint64_t const x = i & mask[j];
                     sink.write(x, bits[j]);
+                    exp_total += bits[j];
                 }
+                CHECK(sink.num_bits_written() == exp_total);
             }
 
             // decode
@@ -403,12 +415,15 @@ TEST_SUITE("io") {
             auto tmpfile = std::filesystem::temp_directory_path() / "iopp-bitwise-test-output";
             {
                 FileOutputStream fos(tmpfile);
+                size_t exp_total = 0;
                 auto sink = bitwise_output_to(fos);
                 for(uint64_t i = 0; i < iota_size; i++) {
                     auto const j = i % cyc;
                     uint64_t const x = i & mask[j];
                     sink.write(x, bits[j]);
+                    exp_total += bits[j];
                 }
+                CHECK(sink.num_bits_written() == exp_total);
             }
             {
                 FileInputStream fis(tmpfile);
