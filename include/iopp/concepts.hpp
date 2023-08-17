@@ -110,6 +110,7 @@ concept InputIterator = std::input_iterator<T> && std::convertible_to<std::iter_
  * * a function `write` accepting a single bit as a boolean value,
  * * an overload of `write` accepting an unsigned integer containing the bits to be written, as well as the number of bits to write, and
  * * a function `flush` that flushes any current intermediate state to the sink
+ * * a function `num_bits_written` that tells the number of bits written since instantiation or last reset
  * 
  * \tparam T the type
  */
@@ -123,6 +124,9 @@ concept BitSink =
     } &&
     requires(T subject, uintmax_t bits, size_t num) {
         { subject.write(bits, num) };
+    } &&
+    requires(T const subject) {
+        { subject.num_bits_written() } -> std::unsigned_integral;
     };
 
 /**

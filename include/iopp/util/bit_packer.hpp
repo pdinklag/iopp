@@ -47,6 +47,8 @@ namespace iopp {
  * This class maintains a \em current pack word that bits are written to.
  * When the pack word is full, \ref flush is called or the packer is destroyed, the word is forwarded to the specified output iterator.
  * 
+ * This class satisfies the \ref iopp::BitSink concept.
+ * 
  * \tparam Pack the pack integer type
  * \tparam Output the output iterator type
  */
@@ -63,6 +65,7 @@ private:
 
     PackWord pack_;
     size_t i_;
+    size_t num_bits_written_;
 
     Output out_;
     bool finalize_;
@@ -80,7 +83,7 @@ public:
      * \param out the output iterator
      * \param finalize if true, when destroying the bit packer, it will emit a final piece of information for a future \ref BitUnpacker to detect the end of the bit stream
      */
-    BitPacker(Output out, bool const finalize = true) : out_(out), finalize_(finalize), was_ever_flushed_(false) {
+    BitPacker(Output out, bool const finalize = true) : out_(out), num_bits_written_(0), finalize_(finalize), was_ever_flushed_(false) {
         reset();
     }
 
@@ -111,6 +114,7 @@ public:
     void write(bool const bit) {
         // write single bit
         pack_ |= set_bit(i_) & (-bit); // nb: branchless ternary version of (bit ? set_bit(i_) : 0)
+        ++num_bits_written_;
 
         // potentially flush
         if(++i_ >= PACK_WORD_BITS) flush();
@@ -127,6 +131,7 @@ public:
      */
     void write(uintmax_t bits, size_t num) {
         assert(num > 0);
+        auto const in_num = num;
 
         // write num low bits (in MSBF order)
         while(i_ + num > PACK_WORD_BITS) {
@@ -146,6 +151,8 @@ public:
             i_ += num;
             if(i_ >= PACK_WORD_BITS) flush();
         }
+
+        num_bits_written_ += in_num;
     }
 
     /**
@@ -169,9 +176,18 @@ public:
      * To retrieve the total number of written bits by this bit packer, add this number to the number of pack words emitted to the output iterator.
      * Note that this class does not store the latter; it is the responsibility of the programmer to keep track of it.
      * 
-     * \return size_t the position of the next bit to be written in the current pack word
+     * \return the position of the next bit to be written in the current pack word
      */
     size_t pack_pos() const { return i_ % PACK_WORD_BITS; }
+
+    /**
+     * \brief Reports the number of bits written since instantiation.
+     * 
+     * This does not include the finalizer, if any.
+     * 
+     * \return the number of bits written since instantiation
+     */
+    size_t num_bits_written() const { return num_bits_written_; }
 };
 
 }
