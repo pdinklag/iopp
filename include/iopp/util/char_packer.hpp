@@ -29,10 +29,10 @@
 #define _IOPP_UTIL_CHAR_PACKER_HPP
 
 #include <bit>
-#include <iterator>
 
 #include "dead_end.hpp"
 #include "pack_word.hpp"
+#include "../concepts.hpp"
 
 namespace iopp {
 
@@ -55,8 +55,7 @@ namespace iopp {
  * 
  * \tparam CharInputIterator the source iterator type
  */
-template<std::input_iterator CharInputIterator>
-requires std::convertible_to<std::iter_value_t<CharInputIterator>, char>
+template<InputIterator<char> CharInputIterator>
 class CharPacker {
 private:
     CharInputIterator in_, end_;

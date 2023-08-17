@@ -31,9 +31,9 @@
 #include <bit>
 #include <cassert>
 #include <cstddef>
-#include <concepts>
 #include <iterator>
 
+#include "../concepts.hpp"
 #include "bits.hpp"
 #include "pack_word.hpp"
 
@@ -48,8 +48,7 @@ namespace iopp {
  * 
  * \tparam Input the input iterator type
  */
-template<std::input_iterator Input>
-requires std::convertible_to<std::iter_value_t<Input>, PackWord>
+template<InputIterator<PackWord> Input>
 class BitUnpacker {
 private:
     static constexpr size_t decode_finalizer(PackWord const x) {

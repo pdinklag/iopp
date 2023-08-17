@@ -75,8 +75,7 @@ auto bitwise_input_from(InputStream& in) {
  * \param end the end of the input
  * \return a bit source reading from the input
  */
-template<std::input_iterator Input>
-requires std::convertible_to<std::iter_value_t<Input>, char>
+template<InputIterator<char> Input>
 auto bitwise_input_from(Input begin, Input end) {
     return BitUnpacker(CharPacker(begin, end), {});
 }

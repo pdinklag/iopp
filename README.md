@@ -229,7 +229,21 @@ int main(int argc, char** argv) {
 
 The library provides a few more utilities:
 
+* The concept `iopp::InputIterator<Item>` allows you to constrain a type to an `std::input_iterator` whose `std::iter_value_t` is `std::convertible_to<Item>`. This can save a few `requires` statements in your declarations:
+
+  ```cpp
+  template<std::input_iterator It> requires std::convertible_to<std::iter_value_t<It>, Item>
+  ```
+
+  becomes:
+
+  ```cpp
+  template<iopp::InputIterator<Item> It>
+  ```
+
 * Using `iopp::stdin_is_pipe()` (in `iopp/stdin.hpp`), you can quickly test whether is something on the standard input.
+
 * If you just need a file to be loaded as a string, use `iopp::load_file_str` (in `iopp/load_file.hpp`).
+
 * Ever need to write an output iterator that satisfies the `std::output_iterator` concept? Base it off `iopp::OutputIteratorBase` (in `iopp/util/output_iterator_base.hpp`)!
 

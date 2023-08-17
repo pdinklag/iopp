@@ -93,6 +93,17 @@ concept STLOutputStreamLike =
     };
 
 /**
+ * \brief Stronger version of `std::input_iterator`
+ * 
+ * In order to satisfy this concept, the `value_type` of the input iterator must be convertible to the specified item type.
+ * 
+ * \tparam T the type
+ * \tparam Item the input item type
+ */
+template<typename T, typename Item>
+concept InputIterator = std::input_iterator<T> && std::convertible_to<std::iter_value_t<T>, Item>;
+
+/**
  * \brief Concept for types that accept bitwise input
  * 
  * In order to satisfy this concept, the type must provide
