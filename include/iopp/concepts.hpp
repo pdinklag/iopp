@@ -29,6 +29,7 @@
 #define _IOPP_CONCEPTS_HPP
 
 #include <concepts>
+#include <cstdint>
 #include <iostream>
 #include <iterator>
 
