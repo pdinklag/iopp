@@ -166,6 +166,20 @@ TEST_SUITE("io") {
                 CHECK(*in++ == c);
             }
         }
+
+        SUBCASE("Reset and read again") {
+            // read
+            while(in != end) CHECK(*in++ == *iota_it++);
+
+            // reset
+            fin.seekg(0, std::ios::beg);
+            in = fin.begin();
+            end = fin.end();
+            iota_it = str_iota.begin();
+
+            // read again
+            while(in != end) CHECK(*in++ == *iota_it++);
+        }
     }
 
     TEST_CASE("StreamOutputIterator") {
