@@ -139,22 +139,25 @@ private:
     }
 
     inline pos_type seekoff(off_type off, std::ios_base::seekdir dir) {
-        if(off) {
-            // determine target position
-            switch(dir) {
-                case std::ios::beg:
-                    foffs_ = off;
-                    break;
-                
-                case std::ios::cur:
-                    foffs_ = fpos() + off;
-                    break;
-                
-                case std::ios::end:
-                    foffs_ = view_size() + off;
-                    break;
-            }
+        // determine target position
+        size_t new_foffs;
+        switch(dir) {
+            case std::ios::beg:
+                new_foffs = off;
+                break;
             
+            case std::ios::cur:
+                new_foffs = fpos() + off;
+                break;
+            
+            case std::ios::end:
+                new_foffs = view_size() + off;
+                break;
+        }
+        
+        if(new_foffs != foffs_) {
+            foffs_ = new_foffs;
+
             #ifdef IOPP_POSIX
             lseek64(fd_, begin_ + foffs_, SEEK_SET);
             #else
