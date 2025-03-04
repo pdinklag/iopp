@@ -40,14 +40,21 @@ namespace iopp {
  * \brief Loads the specified file into a string
  * 
  * \param path the file path
+ * \param prefix the maximum prefix to load from the file (defaults to whole file)
  * \return the file's contents
  */
-inline std::string load_file_str(std::filesystem::path const& path) {
+inline std::string load_file_str(std::filesystem::path const& path, size_t const prefix = SIZE_MAX) {
     std::string s;
-    s.reserve(std::filesystem::file_size(path));
+    s.reserve(std::min(std::filesystem::file_size(path), prefix));
     {
         FileInputStream fin(path);
-        std::copy(fin.begin(), fin.end(), std::back_inserter(s));
+
+        auto it = fin.begin();
+        auto const end = fin.end();
+
+        while(s.length() < prefix && it != end) {
+            s.push_back(*it++);
+        }
     }
     s.shrink_to_fit();
     return s;
