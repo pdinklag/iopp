@@ -77,6 +77,7 @@ private:
     inline void invalidate_buffer() {
         setg(nullptr, nullptr, nullptr);
         gcount_ = 0;
+        eof_ = false;
     }
     
     inline size_t fpos() const {
