@@ -57,7 +57,7 @@ namespace iopp {
  */
 template<STLInputStreamLike InputStream>
 auto bitwise_input_from(InputStream& in) {
-    return BitUnpacker(CharPacker(StreamInputIterator(in), {}));
+    return BitUnpacker(CharPacker(StreamInputIterator(in), StreamInputIterator<InputStream>::end(in)));
 }
 
 /**
