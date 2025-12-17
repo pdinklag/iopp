@@ -28,6 +28,13 @@
 #ifndef _IOPP_LOAD_FILE_HPP
 #define _IOPP_LOAD_FILE_HPP
 
+#ifdef IOPP_POSIX
+#include <unistd.h>
+#include <fcntl.h>
+#else
+#include <fstream>
+#endif
+
 #include <algorithm>
 #include <string>
 
@@ -44,19 +51,22 @@ namespace iopp {
  * \return the file's contents
  */
 inline std::string load_file_str(std::filesystem::path const& path, size_t const prefix = SIZE_MAX) {
+    auto const n = std::min(std::filesystem::file_size(path), prefix);
+
     std::string s;
-    s.reserve(std::min(std::filesystem::file_size(path), prefix));
-    {
-        FileInputStream fin(path);
-
-        auto it = fin.begin();
-        auto const end = fin.end();
-
-        while(s.length() < prefix && it != end) {
-            s.push_back(*it++);
-        }
-    }
-    s.shrink_to_fit();
+    s.resize_and_overwrite(n, [&](char* data, size_t num){
+        #ifdef IOPP_POSIX
+            auto fd = open(path.c_str(), O_RDONLY);
+            posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL); // we expect sequential data access since this is a stream
+            auto ignore = ::read(fd, data, num);
+            ::close(fd);
+            return num;
+        #else
+            std::ifstream ifs(path);
+            ifs.read(data, num);
+            return num;
+        #endif
+    });
     return s;
 }
 
