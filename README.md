@@ -10,7 +10,7 @@ This header-only C++20 library provides an API for various frequently used I/O o
 
 ### Requirements
 
-This library is written in C++20, a corresponding compiler is required that fully supports concepts. Tests have been done only with GCC 11. Apart from that, the library as no external dependencies. For building the [unit tests](#unit-tests), CMake is required.
+This library is written in C++23, a corresponding compiler is required that fully supports concepts. Tests have been done only with GCC 13. Apart from that, the library as no external dependencies. For building the [unit tests](#unit-tests), CMake is required.
 
 Note that this library is currently only targeted at POSIX systems. I would appreciate contributions towards supporting Windows.
 
