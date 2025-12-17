@@ -28,8 +28,10 @@
 #ifndef _IOPP_POSIX_HPP
 #define _IOPP_POSIX_HPP
 
+#ifndef _IOPP_DISABLE_DIRECT_API
 #ifdef __unix__
 #define IOPP_POSIX
+#endif
 #endif
 
 #endif

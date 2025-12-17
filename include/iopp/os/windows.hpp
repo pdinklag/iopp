@@ -28,8 +28,10 @@
 #ifndef _IOPP_WINDOWS_HPP
 #define _IOPP_WINDOWS_HPP
 
+#ifndef _IOPP_DISABLE_DIRECT_API
 #ifdef _WIN32
 #define IOPP_WINDOWS
+#endif
 #endif
 
 #endif
