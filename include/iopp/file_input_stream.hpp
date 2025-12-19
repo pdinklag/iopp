@@ -28,6 +28,7 @@
 #ifndef _IOPP_FILE_INPUT_STREAM_HPP
 #define _IOPP_FILE_INPUT_STREAM_HPP
 
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -57,6 +58,8 @@ public:
     using off_type = ssize_t;
     using char_type = char;
     using int_type = int;
+
+    static_assert(sizeof(char_type) == 1);
 
 private:
     using uchar_type = unsigned char;
@@ -110,25 +113,23 @@ private:
         egptr_ = gend;
     }
 
+    inline size_t read_immediate(char_type* buffer, size_t const readnum) {
+        ssize_t n;
+        #ifdef IOPP_POSIX
+        n = ::read(fd_, buffer, readnum);
+        #else
+        fstream_.read(buffer, readnum);
+        n = fstream_.gcount();
+        #endif
+        return (n >= 0) ? n : 0;
+    }
+
     inline int underflow() {
         foffs_ += bufcount();
         
         if(foffs_ < view_size()) {
-            const size_t readnum = std::min(bufsize_, view_size() - foffs_);
-            size_t num_read;
-
-            #ifdef IOPP_POSIX
-            auto n = ::read(fd_, buffer_.get(), readnum);
-            if(n >= 0) {
-                num_read = n;
-            } else {
-                // error, maybe throw?
-                num_read = 0;
-            }
-            #else
-            fstream_.read((char*)buffer_.get(), readnum);
-            num_read = fstream_.gcount();
-            #endif
+            size_t const readnum = std::min(bufsize_, view_size() - foffs_);
+            size_t const num_read = read_immediate((char_type*)buffer_.get(), readnum);
 
             if(num_read) {
                 setg(buffer_.get(), buffer_.get(), buffer_.get() + num_read);
@@ -285,22 +286,25 @@ public:
      * \param num the number of characters to read
      * \return a reference to this stream
      */
-    inline FileInputStream& read(char_type* outp, const size_t num) {
-        size_t read = 0;
-        while(read < num && !eof_) {
-            // read however much is left to read in buffer
-            while(read < num && gptr_ < egptr_) {
-                *outp++ = *gptr_++;
-                ++read;
-            }
-
-            // underflow
-            if(read < num) {
-                eof_ = (underflow() == std::char_traits<char_type>::eof());
-            }
+    inline FileInputStream& read(char_type* outp, const size_t num) {    
+        size_t const num_good = egptr_ - gptr_;
+        if(num_good) {
+            std::memcpy(outp, gptr_, num_good);
         }
 
-        gcount_ = read;
+        if(num <= num_good) {
+            gptr_ += num;
+            gcount_ = num;
+        } else {
+            // read remaining bytes directly
+            size_t const remaining = num - num_good;
+            gcount_ = num_good + read_immediate(outp + num_good, remaining);
+
+            // account for that
+            foffs_ += remaining;
+            eof_ = gcount_ < num;
+            setg(nullptr, nullptr, nullptr);
+        }
         return *this;
     }
 
