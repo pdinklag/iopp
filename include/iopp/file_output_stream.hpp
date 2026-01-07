@@ -221,10 +221,12 @@ public:
     inline FileOutputStream& write(char_type const* inp, const size_t num) {
         size_t written = 0;
         while(written < num) {
-            while(written < num && pptr_ < epptr_) {
-                *pptr_++ = *inp++;
-                ++written;
-            }
+            size_t const n = std::min(num - written, size_t(epptr_ - pptr_));
+            std::memcpy(pptr_, (uchar_type const*)inp, n);
+
+            written += n;
+            pptr_ += n;
+            inp += n;
 
             if(written < num) {
                 sync(); // flush when necessary
