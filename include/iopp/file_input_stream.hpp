@@ -289,7 +289,7 @@ public:
     inline FileInputStream& read(char_type* outp, const size_t num) {    
         size_t const num_good = egptr_ - gptr_;
         if(num_good) {
-            std::memcpy(outp, gptr_, num_good);
+            std::memcpy(outp, gptr_, std::min(num, num_good));
         }
 
         if(num <= num_good) {
