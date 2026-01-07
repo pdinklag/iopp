@@ -114,14 +114,22 @@ private:
     }
 
     inline size_t read_immediate(char_type* buffer, size_t const readnum) {
-        ssize_t n;
+        size_t num_read = 0;
         #ifdef IOPP_POSIX
-        n = ::read(fd_, buffer, readnum);
+        while(num_read < readnum) {
+            ssize_t n = ::read(fd_, buffer, readnum);
+            if(n > 0) {
+                num_read += n;
+                buffer += n;
+            } else {
+                break; // TODO: throw?
+            }
+        }
         #else
         fstream_.read(buffer, readnum);
-        n = fstream_.gcount();
+        num_read = fstream_.gcount();
         #endif
-        return (n >= 0) ? n : 0;
+        return num_read;
     }
 
     inline int underflow() {
