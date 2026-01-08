@@ -64,6 +64,8 @@ public:
 private:
     using uchar_type = unsigned char;
 
+    static constexpr auto EOF_TOKEN = std::char_traits<char_type>::eof();
+
     size_t begin_;
     size_t end_;
     size_t bufsize_;
@@ -144,8 +146,7 @@ private:
                 return *(buffer_.get());
             }
         }
-
-        return std::char_traits<char_type>::eof();
+        return EOF_TOKEN;
     }
 
     inline pos_type seekoff(off_type off, std::ios_base::seekdir dir) {
@@ -271,7 +272,7 @@ public:
             return *gptr_++;
         } else {
             const auto x = underflow();
-            if(x != std::char_traits<char_type>::eof()) {
+            if(x != EOF_TOKEN) {
                 // all good
                 eof_ = false;
                 gcount_ = 1;
@@ -294,24 +295,36 @@ public:
      * \param num the number of characters to read
      * \return a reference to this stream
      */
-    inline FileInputStream& read(char_type* outp, const size_t num) {    
-        size_t const num_good = egptr_ - gptr_;
-        if(num_good) {
-            std::memcpy(outp, gptr_, std::min(num, num_good));
+    inline FileInputStream& read(char_type* outp, const size_t num) {
+        // read however much is left to read in buffer
+        if(gptr_ < egptr_) {
+            gcount_ = std::min(num, size_t(egptr_ - gptr_));
+            std::memcpy(outp, gptr_, gcount_);
+            gptr_ += gcount_;
+            outp += gcount_;
+        } else {
+            gcount_ = 0;
         }
 
-        if(num <= num_good) {
-            gptr_ += num;
-            gcount_ = num;
-        } else {
-            // read remaining bytes directly
-            size_t const remaining = num - num_good;
-            gcount_ = num_good + read_immediate(outp + num_good, remaining);
-
-            // account for that
-            foffs_ += remaining;
+        if(gcount_ < num) {
+            // try and read remaining bytes
+            size_t const remaining = num - gcount_;
+            if(remaining >= bufsize_) {
+                // read many bytes directly from disk
+                size_t const r = read_immediate(outp, remaining);
+                gcount_ += r;
+                foffs_ += r;
+                setg(nullptr, nullptr, nullptr);
+            } else {
+                // underflow and continue reading from buffer
+                if(underflow() != EOF_TOKEN) {
+                    size_t const r = std::min(remaining, size_t(egptr_ - gptr_));
+                    std::memcpy(outp, gptr_, r);
+                    gptr_ += r;
+                    gcount_ += r;
+                }
+            }
             eof_ = gcount_ < num;
-            setg(nullptr, nullptr, nullptr);
         }
         return *this;
     }
