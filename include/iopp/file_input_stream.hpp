@@ -119,7 +119,7 @@ private:
         size_t num_read = 0;
         #ifdef IOPP_POSIX
         while(num_read < readnum) {
-            ssize_t n = ::read(fd_, buffer, readnum);
+            ssize_t n = ::read(fd_, buffer, readnum - num_read);
             if(n > 0) {
                 num_read += n;
                 buffer += n;
