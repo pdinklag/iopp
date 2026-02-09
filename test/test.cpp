@@ -18,6 +18,7 @@
 #include <iopp/util/bit_unpacker.hpp>
 #include <iopp/util/char_packer.hpp>
 #include <iopp/util/char_unpacker.hpp>
+#include <iopp/util/overlapping_blocks.hpp>
 
 #include <iopp/bitwise_io.hpp>
 
@@ -459,6 +460,68 @@ TEST_SUITE("io") {
         auto str_iota = load(file_iota);
         auto str_loaded = load_file_str(file_iota);
         CHECK(str_loaded == str_iota);
+    }
+
+    void test_overlapping_blocks(size_t const block_size, ssize_t const overlap) {
+        auto str_iota = load(file_iota);
+
+        OverlappingBlocks<FileInputStream> block(block_size, 128);
+        CHECK(block.empty());
+
+        FileInputStream in(file_iota);
+        block.init(in);
+        CHECK(block.first());
+
+        size_t offset = 0;
+        do {
+            CHECK(!block.empty());
+            CHECK(block.offset() == offset);
+            if(offset + block_size >= iota_size) {
+                CHECK(block.last());
+                if(iota_size % block_size != 0) {
+                    CHECK(block.size() == iota_size % block_size);
+                } else {
+                    CHECK(block.size() == block_size);
+                }
+            } else {
+                CHECK(!block.last());
+                CHECK(block.size() == block_size);
+            }
+
+            for(size_t i = 0; i < block.size(); i++) {
+                char const expect = (offset + i) & 0xFF;
+                CHECK(block[i] == expect);
+            }
+
+            if(block.first()) {
+                for(ssize_t i = 0; i < overlap; i++) {
+                    CHECK(block[-i-1] == 0);
+                }
+            } else {
+                for(ssize_t i = 0; i < overlap; i++) {
+                    char const expect = (offset - i - 1) & 0xFF;
+                    CHECK(block[-i-1] == expect);
+                }
+            }
+
+            offset += block_size;
+        } while(block.advance());
+
+        CHECK(offset >= iota_size);
+    }
+
+    TEST_CASE("overlapping_blocks") {
+        ssize_t const overlap = 128;
+        size_t const aligned_block_size = iota_size / 4;
+        size_t const unaligned_block_size = aligned_block_size - aligned_block_size / 2;
+        
+        SUBCASE("aligned_block_size") {
+            test_overlapping_blocks(aligned_block_size, overlap);
+        }
+        
+        SUBCASE("unaligned_block_size") {
+            test_overlapping_blocks(unaligned_block_size, overlap);
+        }
     }
 }
 

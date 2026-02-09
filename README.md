@@ -6,6 +6,7 @@ This header-only C++20 library provides an API for various frequently used I/O o
 * [Iterators](#stream-iterators) over "STL-like" input and output streams for iterator-based I/O.
 * [Bitwise I/O](#bitwise-i/o) streams powered by bit and character packing.
 * [Memory-mapped files](#memory-mapped-files).
+* Processing input streams using [overlapping blocks](#overlapping-blocks).
 * [Miscellaneous](#miscellaneous) utility functions.
 
 ### Requirements
@@ -224,6 +225,53 @@ int main(int argc, char** argv) {
     }
 }
 ```
+
+### Overlapping Blocks
+
+The library provides a utility to process an input stream blockwise, memorizing an overlap inbetween the block. This can be used to access up a certain number of characters from the previous block, which is useful when processing a stream with, e.g., a sliding window. The overlap region can be accessed using negative indices.
+
+Here's a simple example:
+
+```cpp
+#include <iostream>
+#include <iopp/file_input_stream.hpp>
+#include <iopp/util/overlapping_blocks.hpp>
+
+int main(int argc, char** argv) {
+    if(argc < 2) return -1; // usage: [INPUT]
+
+    iopp::FileInputStream fin(argv[1]);
+    iopp::OverlappingBlocks block(fin, 100, 10); // blockwise processing using blocks of 100 bytes and an overlap of 10 bytes
+    do {
+        // identify what block we are processing
+        if(block.first()) {
+            std::cout << "Processing the first block with offset: " << block.offset() << std::endl;
+        } else if(block.last()) {
+            std::cout << "Processing the last block with offset: " << block.offset() << std::endl;
+        } else {
+            std::cout << "Processing a block with offset: " << block.offset() << std::endl;
+        }
+
+        // print the current block
+        std::cout << "\tThe content of the current block is:    ";
+        for(size_t i = 0; i < block.size(); i++) {
+            std::cout << block[i];
+        }
+        std::cout << std::endl;
+
+        // print the overlap from the previous block
+        std::cout << "\tThe overlap from the previous block is: ";
+        for(ssize_t i = 0; i < block.overlap(); i++) {
+            std::cout << block[-i];
+        }
+        std::cout << std::endl;
+    } while(block.advance()); // advance returns false when the last block has been processed
+
+    return 0;
+}
+```
+
+
 
 ### Miscellaneous
 

@@ -106,11 +106,49 @@ int example_mmap(int argc, char** argv) {
     }
 }
 
+#include <iostream>
+#include <iopp/file_input_stream.hpp>
+#include <iopp/util/overlapping_blocks.hpp>
+
+int example_overlapping_blocks(int argc, char** argv) {
+    if(argc < 2) return -1; // usage: [INPUT]
+
+    iopp::FileInputStream fin(argv[1]);
+    iopp::OverlappingBlocks block(fin, 100, 10); // blockwise processing using blocks of 100 bytes and an overlap of 10 bytes
+    do {
+        // identify what block we are processing
+        if(block.first()) {
+            std::cout << "Processing the first block with offset: " << block.offset() << std::endl;
+        } else if(block.last()) {
+            std::cout << "Processing the last block with offset: " << block.offset() << std::endl;
+        } else {
+            std::cout << "Processing a block with offset: " << block.offset() << std::endl;
+        }
+
+        // print the current block
+        std::cout << "\tThe content of the current block is:    ";
+        for(size_t i = 0; i < block.size(); i++) {
+            std::cout << block[i];
+        }
+        std::cout << std::endl;
+
+        // print the overlap from the previous block
+        std::cout << "\tThe overlap from the previous block is: ";
+        for(ssize_t i = 0; i < block.overlap(); i++) {
+            std::cout << block[-i];
+        }
+        std::cout << std::endl;
+    } while(block.advance()); // advance returns false when the last block has been processed
+
+    return 0;
+}
+
 int main(int argc, char** argv) {
     example_file_io(argc, argv);
     example_stream_iterators(argc, argv);
     example_bitwise_io(argc, argv);
     example_bitwise_input_iterators(argc, argv);
     example_mmap(argc, argv);
+    example_overlapping_blocks(argc, argv);
     return 0;
 }
