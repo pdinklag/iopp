@@ -1,6 +1,6 @@
 # io++ &ndash; I/O Utilities for C++
 
-This header-only C++20 library provides an API for various frequently used I/O operations:
+This header-only C++23 library provides an API for various frequently used I/O operations:
 
 * Fast buffering [file input and output streams](#file-i/o) using the POSIX API, if available.
 * [Iterators](#stream-iterators) over "STL-like" input and output streams for iterator-based I/O.
