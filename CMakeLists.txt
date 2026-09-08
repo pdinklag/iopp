@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.28.0 FATAL_ERROR)
+
+# set build type to Release if nothing was specified
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE "Release" FORCE)
+endif()
+
 project(iopp)
 
 # set C++ build flags
-set(CXX_STANDARD c++23)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=gnu++23 ${GCC_WARNINGS}")
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 
 # create interface library
 add_library(iopp INTERFACE)
