@@ -8,7 +8,7 @@ namespace iopp::test {
     std::filesystem::path files = "files";
     std::filesystem::path file_iota = files / "iota";
 
-    constexpr size_t operator"" _Ki(unsigned long long s) { return s << 10ULL; }
+    constexpr size_t operator""_Ki(unsigned long long s) { return s << 10ULL; }
     constexpr size_t iota_size = 56_Ki;
 
     std::string load(std::filesystem::path const& path) {
